@@ -3,17 +3,14 @@ import User from "../models/User.js";
 
 /**
  * @desc Doctor send the request to the patient
- * @route POST api/connections/request
+ * @route POST /api/connections/request
  * @access Doctor
  * @param {object} req - Express request object
- *
  * @param {string} req.body.email - Patient's email (Required)
- * @param {string} req.body.requestMessage - Optional Message from Doc for Patient
- *
- * @param {object} res - Express request object
+ * @param {string} req.body.requestMessage - Optional message from doctor for patient
+ * @param {object} res - Express response object
  * @returns {object} 201 Created | 4xx Error responses
  */
-
 const sendConnectionRequest = async (req, res) => {
   try {
     const email = req.body.email.toLowerCase().trim();
@@ -134,13 +131,10 @@ const approveConnectionRequest = async (req, res) => {
  * @desc Fetch all doctors connected to the patient
  * @route GET /api/connections/connected-doctors
  * @access Patient
- *
  * @param {object} req - Express request object
- *
  * @param {object} res - Express response object
  * @returns {object} 200 OK | 4xx Error responses
- * */
-
+ */
 const getConnectedDoctors = async (req, res) => {
   try {
     if (req.user.role !== "patient") {
@@ -171,10 +165,6 @@ const getConnectedDoctors = async (req, res) => {
         pinned: conn.pinned,
       }));
 
-    if (connectedDoctors.length === 0) {
-      return res.status(200).json({ message: "No connected doctors found." });
-    }
-
     res.status(200).json(connectedDoctors);
   } catch (error) {
     console.log(error.message);
@@ -195,6 +185,14 @@ const getConnectedDoctors = async (req, res) => {
  * @returns {object} 200 OK | 4xx Error responses
  * */
 
+/**
+ * @desc Fetch all patients connected to the logged-in doctor
+ * @route GET /api/connections/connected-patients
+ * @access Doctor
+ * @param {object} req - Express request object
+ * @param {object} res - Express response object
+ * @returns {object} 200 OK | 4xx Error responses
+ */
 const getConnectedPatients = async (req, res) => {
   try {
     if (req.user.role !== "doctor") {
@@ -216,10 +214,6 @@ const getConnectedPatients = async (req, res) => {
       "name email"
     );
 
-    if (connectedPatients.length === 0) {
-      return res.status(200).json({ message: "No connected patients found." });
-    }
-
     return res.status(200).json(connectedPatients);
   } catch (error) {
     console.log(error.message);
@@ -229,6 +223,16 @@ const getConnectedPatients = async (req, res) => {
   }
 };
 
+/**
+ * @desc Disconnect a doctor-patient connection
+ * @route POST /api/connections/disconnect
+ * @access Doctor/Patient
+ * @param {object} req - Express request object
+ * @param {string} [req.body.patientId|req.params.patientId] - Patient's Id (required for doctor)
+ * @param {string} [req.body.doctorId|req.params.doctorId] - Doctor's Id (required for patient)
+ * @param {object} res - Express response object
+ * @returns {object} 200 OK | 4xx Error responses
+ */
 const disconnectConnection = async (req, res) => {
   try {
     const role = req.user.role;
@@ -236,16 +240,17 @@ const disconnectConnection = async (req, res) => {
       return res.status(401).json({ message: "Unauthorized Request." });
     }
 
-    if (role == "doctor" && !req.body.patientId) {
+    const patientId = req.body.patientId;
+    const doctorId = req.body.doctorId;
+    if (role == "doctor" && !patientId) {
       return res.status(400).json({ message: "Missing patientId" });
     }
-
-    if (role == "patient" && !req.body.doctorId) {
+    if (role == "patient" && !doctorId) {
       return res.status(400).json({ message: "Missing doctorId" });
     }
 
     if (role === "doctor") {
-      const connectedPatient = await User.findById(req.body.patientId);
+      const connectedPatient = await User.findById(patientId);
       if (!connectedPatient) {
         return res.status(404).json({ message: "Patient not found." });
       }
@@ -274,7 +279,7 @@ const disconnectConnection = async (req, res) => {
         (conn) =>
           (conn.doctorId._id
             ? conn.doctorId._id.toString()
-            : conn.doctorId.toString()) !== req.body.doctorId
+            : conn.doctorId.toString()) !== doctorId
       );
 
       if (patient.connections.length === originalLength) {
@@ -290,6 +295,14 @@ const disconnectConnection = async (req, res) => {
   }
 };
 
+/**
+ * @desc Get all pending connection requests
+ * @route GET /api/connections/pending
+ * @access Doctor/Patient
+ * @param {object} req - Express request object
+ * @param {object} res - Express response object
+ * @returns {object} 200 OK | 4xx Error responses
+ */
 const getPendingRequests = async (req, res) => {
   try {
     const role = req.user.role;
@@ -298,22 +311,19 @@ const getPendingRequests = async (req, res) => {
     }
 
     if (role === "doctor") {
+      const doctorId = req.user._id;
       const requestedPatients = await User.find(
         {
           role: "patient",
           connections: {
             $elemMatch: {
-              doctorId: req.user._id,
+              doctorId: doctorId,
               status: "pending",
             },
           },
         },
         "name email connections"
       );
-
-      if (requestedPatients.length === 0) {
-        return res.status(200).json({ message: "No Pending Requests." });
-      }
 
       const cleanedRequestedPatients = requestedPatients.map((conn) => ({
         name: conn.name,
@@ -333,10 +343,6 @@ const getPendingRequests = async (req, res) => {
         (conn) => conn.status === "pending"
       );
 
-      if (requestedDoctors.length === 0) {
-        return res.status(200).json({ message: "No Invitations." });
-      }
-
       return res.status(200).json(requestedDoctors);
     }
   } catch (error) {
@@ -347,72 +353,110 @@ const getPendingRequests = async (req, res) => {
   }
 };
 
+/**
+ * @desc Doctor cancels a sent connection request
+ * @route POST /api/connections/cancel
+ * @access Doctor
+ * @param {object} req - Express request object
+ * @param {string} req.body.patientId - Patient's Id
+ * @param {object} res - Express response object
+ * @returns {object} 200 OK | 4xx Error responses
+ */
 const cancelRequest = async (req, res) => {
-  if (req.user.role !== "doctor") {
-    return res
-      .status(403)
-      .json({ message: "Only doctors can cancel the request." });
-  }
-  if (!req.body || !req.body.patientId) {
-    return res.status(400).json({ message: "Missing patient Id." });
-  }
-  const patientId = req.body.patientId;
+  try {
+    if (req.user.role !== "doctor") {
+      return res
+        .status(403)
+        .json({ message: "Only doctors can cancel the request." });
+    }
+    if (!req.body || !req.body.patientId) {
+      return res.status(400).json({ message: "Missing patient Id." });
+    }
+    const patientId = req.body.patientId;
 
-  const patient = await User.findById(patientId);
-  if (!patient) {
-    return res.status(404).json({ message: "Patient not found." });
+    const patient = await User.findById(patientId);
+    if (!patient) {
+      return res.status(404).json({ message: "Patient not found." });
+    }
+    patient.connections = patient.connections.filter(
+      (conn) => conn.doctorId.toString() !== req.user._id.toString()
+    );
+    await patient.save();
+    return res.status(200).json({ message: "Request cancelled successfully." });
+  } catch (error) {
+    console.log(error.message);
+    return res
+      .status(500)
+      .json({ message: "Server error. Please try again later." });
   }
-  patient.connections = patient.connections.filter(
-    (conn) => conn.doctorId.toString() !== req.user._id.toString()
-  );
-  await patient.save();
-  return res.status(200).json({ message: "Request cancelled successfully." });
 };
 
+/**
+ * @desc Patient updates access settings for a doctor
+ * @route POST /api/connections/update-access
+ * @access Patient
+ * @param {object} req - Express request object
+ * @param {string} req.body.doctorId - Doctor's Id
+ * @param {boolean} [req.body.chatEnabled] - Allow doctor to chat
+ * @param {boolean} [req.body.pinned] - Pin doctor
+ * @param {boolean} [req.body.viewPastNotes] - Allow doctor to view past notes
+ * @param {boolean} [req.body.reportsAccess] - Allow doctor to view reports
+ * @param {object} res - Express response object
+ * @returns {object} 200 OK | 4xx Error responses
+ */
 const updateAccess = async (req, res) => {
-  if (!req.body) {
-    return res.status(400).json({ message: "No data has been recieved." });
-  }
+  try {
+    if (!req.body) {
+      return res.status(400).json({ message: "No data has been recieved." });
+    }
 
-  if (req.user.role !== "patient") {
-    return res.status(401).json({ message: "Only patients can access." });
-  }
+    if (req.user.role !== "patient") {
+      return res.status(401).json({ message: "Only patients can access." });
+    }
 
-  const doctorId = req.body.doctorId;
-  if (!doctorId) {
-    return res.status(400).json({ message: "Missing doctorId." });
-  }
-  const patient = await User.findById(req.user._id);
-  if (!patient) {
-    return res.status(404).json({ message: "Patient not found." });
-  }
+    const doctorId = req.body.doctorId;
+    if (!doctorId) {
+      return res.status(400).json({ message: "Missing doctorId." });
+    }
+    const patient = await User.findById(req.user._id);
+    if (!patient) {
+      return res.status(404).json({ message: "Patient not found." });
+    }
 
-  const doctor = patient.connections.find((conn) => conn.doctorId.toString() === doctorId);
+    const doctor = patient.connections.find(
+      (conn) => conn.doctorId.toString() === doctorId
+    );
 
-  if(!doctor) {
-    return res.status(404).json({message: "Doctor connection not found."})
+    if (!doctor) {
+      return res.status(404).json({ message: "Doctor connection not found." });
+    }
+
+    if (typeof req.body.chatEnabled !== "undefined") {
+      doctor.chatEnabled = req.body.chatEnabled;
+    }
+
+    if (typeof req.body.pinned !== "undefined") {
+      doctor.pinned = req.body.pinned;
+    }
+
+    if (typeof req.body.viewPastNotes !== "undefined") {
+      doctor.viewPastNotes = req.body.viewPastNotes;
+    }
+
+    if (typeof req.body.reportsAccess !== "undefined") {
+      doctor.reportsAccess = req.body.reportsAccess;
+    }
+
+    await patient.save();
+    return res
+      .status(200)
+      .json({ message: "Access settings updated successfully." });
+  } catch (error) {
+    console.log(error.message);
+    return res
+      .status(500)
+      .json({ message: "Server error. Please try again later." });
   }
-
-  if (typeof req.body.chatEnabled !== "undefined") {
-    doctor.chatEnabled = req.body.chatEnabled;
-  }
-
-  if (typeof req.body.pinned !== "undefined") {
-    doctor.pinned = req.body.pinned;
-  }
-
-  if (typeof req.body.viewPastNotes !== "undefined") {
-    doctor.viewPastNotes = req.body.viewPastNotes;
-  }
-
-  if (typeof req.body.reportsAccess !== "undefined") {
-    doctor.reportsAccess = req.body.reportsAccess;
-  }
-
-  await patient.save();
-  return res
-    .status(200)
-    .json({ message: "Access settings updated successfully." });
 };
 
 export {

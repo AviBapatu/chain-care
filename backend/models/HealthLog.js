@@ -12,7 +12,7 @@ const healthLogSchema = new mongoose.Schema({
   mood: String,
   bloodPressure: String,
   sugarLevel: String,
-  symptoms: String,
+  symptoms: [String],
   notes: String,
 
   // Any extra fields added by the patient

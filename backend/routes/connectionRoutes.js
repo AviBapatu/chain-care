@@ -13,45 +13,26 @@ import protect from "../middleware/authMiddleware.js";
 import authorizeRoles from "../middleware/accessControl.js";
 
 const router = express.Router();
+router.use(protect);
 
-router.post(
-  "/request",
-  protect,
-  authorizeRoles("doctor"),
-  sendConnectionRequest
-);
+router.post("/request", authorizeRoles("doctor"), sendConnectionRequest);
 
-router.post(
-  "/approve",
-  protect,
-  authorizeRoles("patient"),
-  approveConnectionRequest
-);
+router.post("/approve", authorizeRoles("patient"), approveConnectionRequest);
+
+router.get("/connected-doctors", authorizeRoles("patient"), getConnectedDoctors);
 
 router.get(
-  "/connecteddoctors",
-  protect,
-  authorizeRoles("patient"),
-  getConnectedDoctors
-);
-
-router.get(
-  "/connectedpatients",
-  protect,
+  "/connected-patients",
   authorizeRoles("doctor"),
   getConnectedPatients
 );
 
-router.delete("/disconnect", protect, disconnectConnection);
+router.delete("/disconnect", disconnectConnection);
 
-router.get("/pending", protect, getPendingRequests);
+router.get("/pending", getPendingRequests);
 
-router.delete("/cancel", protect, authorizeRoles("doctor"), cancelRequest);
+router.delete("/cancel", authorizeRoles("doctor"), cancelRequest);
 
-router.patch(
-  "/update-access",
-  protect,
-  authorizeRoles("patient"),
-  updateAccess
-);
+router.patch("/update-access", authorizeRoles("patient"), updateAccess);
+
 export default router;
