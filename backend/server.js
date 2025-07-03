@@ -1,7 +1,8 @@
 import express from "express";
 import dotenv from "dotenv";
 import connectDB from "./config/db.js";
-import router from "./routes/authRoutes.js";
+import authRoutes from "./routes/authRoutes.js";
+import connectionRoutes from "./routes/connectionRoutes.js";
 
 dotenv.config();
 
@@ -12,7 +13,8 @@ app.use(express.json());
 
 connectDB();
 
-app.use("/api/auth", router);
+app.use("/api/auth", authRoutes);
+app.use("/api/connections", connectionRoutes);
 
 app.listen(PORT, () => {
   console.log(`Server is Up Baby! Running on PORT: ${PORT}`);
