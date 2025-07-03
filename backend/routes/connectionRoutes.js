@@ -5,7 +5,9 @@ import {
   getConnectedDoctors,
   getConnectedPatients,
   disconnectConnection,
-  getPendingRequests
+  getPendingRequests,
+  cancelRequest,
+  updateAccess,
 } from "../controllers/connectionController.js";
 import protect from "../middleware/authMiddleware.js";
 import authorizeRoles from "../middleware/accessControl.js";
@@ -40,15 +42,16 @@ router.get(
   getConnectedPatients
 );
 
-router.delete(
-  '/disconnect',
-  protect,
-  disconnectConnection
-)
+router.delete("/disconnect", protect, disconnectConnection);
 
-router.get(
-  "/pending",
+router.get("/pending", protect, getPendingRequests);
+
+router.delete("/cancel", protect, authorizeRoles("doctor"), cancelRequest);
+
+router.patch(
+  "/update-access",
   protect,
-  getPendingRequests
+  authorizeRoles("patient"),
+  updateAccess
 );
 export default router;

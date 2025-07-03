@@ -1,3 +1,4 @@
+import { connect } from "mongoose";
 import User from "../models/User.js";
 
 /**
@@ -314,7 +315,13 @@ const getPendingRequests = async (req, res) => {
         return res.status(200).json({ message: "No Pending Requests." });
       }
 
-      return res.status(200).json(requestedPatients);
+      const cleanedRequestedPatients = requestedPatients.map((conn) => ({
+        name: conn.name,
+        email: conn.email,
+        requestMessage: conn.connections.requestMessage,
+      }));
+
+      return res.status(200).json(cleanedRequestedPatients);
     } else if (role === "patient") {
       const patient = await User.findById(req.user._id);
 
@@ -340,6 +347,74 @@ const getPendingRequests = async (req, res) => {
   }
 };
 
+const cancelRequest = async (req, res) => {
+  if (req.user.role !== "doctor") {
+    return res
+      .status(403)
+      .json({ message: "Only doctors can cancel the request." });
+  }
+  if (!req.body || !req.body.patientId) {
+    return res.status(400).json({ message: "Missing patient Id." });
+  }
+  const patientId = req.body.patientId;
+
+  const patient = await User.findById(patientId);
+  if (!patient) {
+    return res.status(404).json({ message: "Patient not found." });
+  }
+  patient.connections = patient.connections.filter(
+    (conn) => conn.doctorId.toString() !== req.user._id.toString()
+  );
+  await patient.save();
+  return res.status(200).json({ message: "Request cancelled successfully." });
+};
+
+const updateAccess = async (req, res) => {
+  if (!req.body) {
+    return res.status(400).json({ message: "No data has been recieved." });
+  }
+
+  if (req.user.role !== "patient") {
+    return res.status(401).json({ message: "Only patients can access." });
+  }
+
+  const doctorId = req.body.doctorId;
+  if (!doctorId) {
+    return res.status(400).json({ message: "Missing doctorId." });
+  }
+  const patient = await User.findById(req.user._id);
+  if (!patient) {
+    return res.status(404).json({ message: "Patient not found." });
+  }
+
+  const doctor = patient.connections.find((conn) => conn.doctorId.toString() === doctorId);
+
+  if(!doctor) {
+    return res.status(404).json({message: "Doctor connection not found."})
+  }
+
+  if (typeof req.body.chatEnabled !== "undefined") {
+    doctor.chatEnabled = req.body.chatEnabled;
+  }
+
+  if (typeof req.body.pinned !== "undefined") {
+    doctor.pinned = req.body.pinned;
+  }
+
+  if (typeof req.body.viewPastNotes !== "undefined") {
+    doctor.viewPastNotes = req.body.viewPastNotes;
+  }
+
+  if (typeof req.body.reportsAccess !== "undefined") {
+    doctor.reportsAccess = req.body.reportsAccess;
+  }
+
+  await patient.save();
+  return res
+    .status(200)
+    .json({ message: "Access settings updated successfully." });
+};
+
 export {
   sendConnectionRequest,
   approveConnectionRequest,
@@ -347,4 +422,6 @@ export {
   getConnectedPatients,
   disconnectConnection,
   getPendingRequests,
+  cancelRequest,
+  updateAccess,
 };
