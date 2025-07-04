@@ -95,6 +95,21 @@ const approveConnectionRequest = async (req, res) => {
         .status(403)
         .json({ message: "Only patients can approve the request." });
     }
+
+    const isAlreadyConnected = await User.findOne({
+      _id: req.user._id,
+      connections: {
+        $elemMatch: {
+          doctorId,
+          status: "connected",
+        },
+      },
+    });
+
+    if (isAlreadyConnected) {
+      return res.status(409).json({ message: "Already connected." });
+    }
+
     if (!approvalStatus) {
       patient.connections = patient.connections.filter(
         (conn) => conn.doctorId.toString() !== doctorId

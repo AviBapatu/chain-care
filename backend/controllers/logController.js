@@ -2,15 +2,12 @@ import HealthLog from "../models/HealthLog.js";
 
 const createLog = async (req, res) => {
   try {
-    if (!req.body) {
-      return res.status(400).json({ message: "No data recieved." });
-    }
-    const patientId = req.user._id;
-    if (req.user.role !== "patient" && !req.user.isAdmin) {
+    if (req.user.role !== "patient") {
       return res.status(401).json({ message: "Unauthorized access." });
     }
+    const patientId = req.user._id;
     if (!patientId) {
-      return res.status(400).json({ message: "Missing patientId" });
+      return res.status(400).json({ message: "Missing patientId." });
     }
 
     const {
