@@ -31,18 +31,24 @@ const uploadReports = async (req, res) => {
       authorInfo.patientId = req.user._id;
     }
 
-    if (authorInfo.patientId === null || authorInfo.uploadedBy === null) {
+    if (authorInfo.patientId === null) {
       return res.status(400).json({ message: "Required fields are missing." });
     }
 
-    const reports = req.files.map((file) => ({
+    let metadata = [];
+    try {
+      metadata = JSON.parse(req.body.metadata || "[]");
+    } catch (e) {
+      return res.status(400).json({ message: "Invalid metadata format." });
+    }
+    const reports = req.files.map((file, index) => ({
       patientId: authorInfo.patientId,
       uploadedBy: req.user._id,
       fileUrl: file.path.toString(),
       fileName: file.originalname.toString(),
       fileType: path.extname(file.originalname).toString(),
       uploadedAt: Date.now(),
-      tags: req.body.tags,
+      tags: Array.isArray(metadata[index]?.tags) ? metadata[index].tags : [],
     }));
 
     if (reports.length === 0) {
@@ -100,6 +106,13 @@ const updateReports = async (req, res) => {
         console.log("File deletion error:", err.message);
       }
     });
+
+    if (report.patientId.toString() !== authorInfo.patientId.toString()) {
+      return res
+        .status(403)
+        .json({ message: "You cannot update this report." });
+    }
+
     report.updateHistory = report.updateHistory || [];
     report.updateHistory.push({
       updatedAt: Date.now(),
@@ -111,13 +124,20 @@ const updateReports = async (req, res) => {
         tags: report.tags,
       },
     });
+    let metadata = {};
+    try {
+      metadata = JSON.parse(req.body.metadata || "{}");
+    } catch (e) {
+      return res.status(400).json({ message: "Invalid metadata format." });
+    }
+
     Object.assign(report, {
       uploadedBy: req.user._id,
       fileUrl: req.file.path.toString(),
       fileName: req.file.originalname.toString(),
       fileType: path.extname(req.file.originalname).toString(),
       uploadedAt: Date.now(),
-      tags: req.body.tags,
+      tags: Array.isArray(metadata.tags) ? metadata.tags : [],
     });
 
     await report.save();
