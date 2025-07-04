@@ -14,6 +14,8 @@ const connectionSchema = new mongoose.Schema({
   chatEnabled: { type: Boolean, default: false },
   viewPastNotes: { type: Boolean, default: false },
   reportsAccess: { type: Boolean, default: false },
+  updateRecords: { type: Boolean, default: false },
+  viewHealthLogs: { type: Boolean, default: false },
 });
 
 /**

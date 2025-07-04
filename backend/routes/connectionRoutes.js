@@ -19,7 +19,11 @@ router.post("/request", authorizeRoles("doctor"), sendConnectionRequest);
 
 router.post("/approve", authorizeRoles("patient"), approveConnectionRequest);
 
-router.get("/connected-doctors", authorizeRoles("patient"), getConnectedDoctors);
+router.get(
+  "/connected-doctors",
+  authorizeRoles("patient"),
+  getConnectedDoctors
+);
 
 router.get(
   "/connected-patients",

@@ -462,6 +462,14 @@ const updateAccess = async (req, res) => {
       doctor.reportsAccess = req.body.reportsAccess;
     }
 
+    if (typeof req.body.updateReports !== "undefined") {
+      doctor.updateReports = req.body.updateReports;
+    }
+
+    if (typeof req.body.viewHealthLogs !== "undefined") {
+      doctor.viewHealthLogs = req.body.viewHealthLogs;
+    }
+
     await patient.save();
     return res
       .status(200)

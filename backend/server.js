@@ -5,6 +5,8 @@ import authRoutes from "./routes/authRoutes.js";
 import connectionRoutes from "./routes/connectionRoutes.js";
 import logRoutes from "./routes/logRoutes.js";
 import noteRoutes from "./routes/noteRoutes.js";
+import reportRoutes from "./routes/reportRoutes.js";
+import errorHandler from "./middleware/errorHandler.js";
 
 dotenv.config();
 
@@ -19,6 +21,9 @@ app.use("/api/auth", authRoutes);
 app.use("/api/connections", connectionRoutes);
 app.use("/api/logs", logRoutes);
 app.use("/api/notes", noteRoutes);
+app.use("/api/reports", reportRoutes);
+
+app.use(errorHandler)
 
 app.listen(PORT, () => {
   console.log(`Server is Up Baby! Running on PORT: ${PORT}`);

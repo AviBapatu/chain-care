@@ -61,7 +61,7 @@ const getAllNotes = async (req, res) => {
           },
         },
       }));
-      console.log("isConnected: ", isConnected);
+      // console.log("isConnected: ", isConnected);
       if (!patientId) {
         return res.status(400).json({ message: "Missing patientId." });
       }
