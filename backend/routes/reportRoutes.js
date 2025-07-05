@@ -3,20 +3,30 @@ import protect from "../middleware/authMiddleware.js";
 import authorizeRoles from "../middleware/accessControl.js";
 import { uploadMultiple, uploadSingle } from "../middleware/multer.js";
 import {
-  uploadReports,
-  updateReports,
+  uploadReportsValidation,
+  uploadReportsToDb,
+  updateReportValidation,
+  updateReportInDb,
   deleteReports,
-  viewReports
+  viewReports,
 } from "../controllers/reportController.js";
 
 const router = express.Router();
 router.use(protect);
 
-router.post("/upload", uploadMultiple.array("records", 5), uploadReports);
+router.post("/upload/validate", uploadReportsValidation);
+
+router.post(
+  "/upload/reports",
+  uploadMultiple.array("reports", 5),
+  uploadReportsToDb
+);
 
 router.get("/all", viewReports);
 
-router.put("/update", uploadSingle.single("record"), updateReports);
+router.post("/update/validate", updateReportValidation);
+
+router.put("/update/report", uploadSingle.single("report"), updateReportInDb);
 
 router.delete("/delete", authorizeRoles("patient"), deleteReports);
 
