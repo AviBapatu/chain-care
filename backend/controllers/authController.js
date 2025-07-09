@@ -1,6 +1,9 @@
 import User from "../models/User.js";
 import bcrypt from "bcryptjs";
 import generateToken from "../utils/generateToken.js";
+import crypto from "crypto";
+import { transporter } from "../config/emailTransporter.js";
+import { sendPasswordReset } from "../utils/emailHandler.js";
 
 const registerUser = async (req, res) => {
   try {
@@ -79,8 +82,78 @@ const loginUser = async (req, res) => {
     }
   } catch (error) {
     console.log(error.message);
+    console.log("loginUser Controller");
     res.status(500).json({ message: "Server error. Try again later." });
   }
 };
 
-export { registerUser, loginUser };
+const forgotPassword = async (req, res) => {
+  try {
+    if (!req.body.email) {
+      return res.status(400).json({ message: "Missing email" });
+    }
+
+    const { email } = req.body;
+
+    const user = await User.findOne({ email });
+    if (!user) {
+      return res.status(404).json({ message: "User not found." });
+    }
+
+    const token = crypto.randomBytes(32).toString("hex");
+    const hashedToken = crypto.createHash("sha256").update(token).digest("hex");
+
+    user.resetPasswordToken = hashedToken;
+    user.resetPasswordExpires = Date.now() + 60 * 60 * 1000;
+    await user.save();
+
+    const resetURL = `http://localhost:5000/reset-password/${token}/${user._id}`;
+    console.log("EMAIL_USER:", process.env.EMAIL_USER);
+    console.log("EMAIL_PASS:", process.env.EMAIL_PASS);
+
+    sendPasswordReset(user.email, resetURL);
+
+    return res.status(200).json({ message: "Reset link sent to the mail." });
+  } catch (error) {
+    console.log(error.message);
+    console.log("forgotPassword Controller");
+    res.status(500).json({ message: "Server error. Try again later." });
+  }
+};
+
+const resetPassword = async (req, res) => {
+  try {
+    if (!req.params.token || !req.params.id || !req.body.password) {
+      return res.status(400).json({ message: "Required fields are missing." });
+    }
+
+    const { token, id } = req.params;
+    const { password } = req.body;
+
+    const hashedToken = crypto.createHash("sha256").update(token).digest("hex");
+
+    const user = await User.findOne({
+      _id: id,
+      resetPasswordToken: hashedToken,
+      resetPasswordExpires: { $gt: Date.now() },
+    });
+
+    if (!user) {
+      return res.status(400).json({ Message: "Invalid or Expired token." });
+    }
+
+    user.password = await bcrypt.hash(password, 10);
+    user.resetPasswordToken = undefined;
+    user.resetPasswordExpires = undefined;
+
+    await user.save();
+
+    res.status(200).json({ message: "Password was reset successfully." });
+  } catch (error) {
+    console.log(error.message);
+    console.log("resetPassword Controller");
+    res.status(500).json({ message: "Server error. Try again later." });
+  }
+};
+
+export { registerUser, loginUser, forgotPassword, resetPassword };

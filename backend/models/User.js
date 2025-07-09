@@ -27,6 +27,8 @@ const userSchema = new mongoose.Schema(
     name: { type: String, required: true },
     email: { type: String, unique: true, required: true },
     password: { type: String, required: true }, // Hashed password
+    resetPasswordToken: String,
+    resetPasswordExpires: Date,
 
     // Role-specific
     role: { type: String, enum: ["patient", "doctor"], required: true },

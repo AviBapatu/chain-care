@@ -7,13 +7,14 @@ import { roleAndPatientIdCheck } from "../utils/roleAndPatientIdCheck.js";
 
 const uploadReportsValidation = async (req, res) => {
   try {
+    console.log(req.body)
     const { role, _id: userId } = req.user;
     let patientId = null;
     if (role === "patient") {
       // console.log("patient")
       patientId = req.user._id;
     } else if (role === "doctor") {
-      console.log("doctor")
+      console.log("doctor");
       patientId = req.body.patientId;
     }
     console.log(patientId);
@@ -43,16 +44,17 @@ const uploadReportsValidation = async (req, res) => {
     res.status(200).json({ canUpload: true, patientId: patientId });
   } catch (error) {
     console.log(error.message);
-    return res
-      .status(500)
-      .json({
-        message: "Server error. Please try again later.",
-        controller: "uploadReportsValidation",
-      });
+    return res.status(500).json({
+      message: "Server error. Please try again later.",
+      controller: "uploadReportsValidation",
+    });
   }
 };
 const uploadReportsToDb = async (req, res) => {
   try {
+    console.log("FILES:", req.files); // Should log an array
+    console.log("BODY:", req.body); // Should contain metadata string
+
     const { role, _id: userId } = req.user;
     let patientId = null;
     if (role === "patient") {
@@ -102,6 +104,10 @@ const uploadReportsToDb = async (req, res) => {
       tags: Array.isArray(metadata[index]?.tags) ? metadata[index].tags : [],
     }));
 
+    console.log("FILES:", req.files);
+    console.log("METADATA STRING:", req.body.metadata);
+    console.log("PARSED METADATA:", metadata);
+
     if (reports.length === 0) {
       return res.status(400).json({ message: "Required fields are missing." });
     }
@@ -113,12 +119,10 @@ const uploadReportsToDb = async (req, res) => {
       .json({ message: "Reports are uploaded successfully." });
   } catch (error) {
     console.log(error.message);
-    return res
-      .status(500)
-      .json({
-        message: "Server error. Please try again later.",
-        controller: "uploadReportsToDb",
-      });
+    return res.status(500).json({
+      message: "Server error. Please try again later.",
+      controller: "uploadReportsToDb",
+    });
   }
 };
 const updateReportValidation = async (req, res) => {
@@ -148,12 +152,10 @@ const updateReportValidation = async (req, res) => {
       .json({ canUpload: true, patientId: roleCheck.patientId, reportId });
   } catch (error) {
     console.log(error.message);
-    return res
-      .status(500)
-      .json({
-        message: "Server error. Please try again later.",
-        controller: "updateReportValidation",
-      });
+    return res.status(500).json({
+      message: "Server error. Please try again later.",
+      controller: "updateReportValidation",
+    });
   }
 };
 const updateReportInDb = async (req, res) => {
@@ -225,12 +227,10 @@ const updateReportInDb = async (req, res) => {
     return res.status(200).json({ message: "Report updated successfully." });
   } catch (error) {
     console.log(error.message);
-    return res
-      .status(500)
-      .json({
-        message: "Server error. Please try again later.",
-        controller: "updateReportInDb",
-      });
+    return res.status(500).json({
+      message: "Server error. Please try again later.",
+      controller: "updateReportInDb",
+    });
   }
 };
 const deleteReports = async (req, res) => {
@@ -262,12 +262,10 @@ const deleteReports = async (req, res) => {
       .json({ message: "Report has been deleted successfully." });
   } catch (error) {
     console.log(error.message);
-    return res
-      .status(500)
-      .json({
-        message: "Server error. Please try again later.",
-        controller: "deleteReports",
-      });
+    return res.status(500).json({
+      message: "Server error. Please try again later.",
+      controller: "deleteReports",
+    });
   }
 };
 
@@ -306,12 +304,10 @@ const viewReports = async (req, res) => {
     return res.status(200).json(reports);
   } catch (error) {
     console.log(error.message);
-    return res
-      .status(500)
-      .json({
-        message: "Server error. Please try again later.",
-        controller: "viewReports",
-      });
+    return res.status(500).json({
+      message: "Server error. Please try again later.",
+      controller: "viewReports",
+    });
   }
 };
 

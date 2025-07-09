@@ -14,7 +14,7 @@ import {
 const router = express.Router();
 router.use(protect);
 
-router.post("/upload/validate", uploadReportsValidation);
+router.post("/upload/validate", express.json(), uploadReportsValidation);
 
 router.post(
   "/upload/reports",
@@ -22,12 +22,17 @@ router.post(
   uploadReportsToDb
 );
 
-router.get("/all", viewReports);
+router.get("/all", express.json(), viewReports);
 
-router.post("/update/validate", updateReportValidation);
+router.post("/update/validate", express.json(), updateReportValidation);
 
 router.put("/update/report", uploadSingle.single("report"), updateReportInDb);
 
-router.delete("/delete", authorizeRoles("patient"), deleteReports);
+router.delete(
+  "/delete",
+  express.json(),
+  authorizeRoles("patient"),
+  deleteReports
+);
 
 export default router;
