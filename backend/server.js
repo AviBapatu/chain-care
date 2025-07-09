@@ -15,8 +15,7 @@ const PORT = process.env.PORT || 5000;
 
 const app = express();
 
-app.use("/api/reports", reportRoutes);
-/** Moved here due to issue with form-data which is being parsed as json and getting recieved as in the controller */
+app.use("/api/reports", reportRoutes); /** Moved here due to issue with form-data which is being parsed as json and getting recieved as in the controller */
 app.use(express.json());
 connectDB();
 

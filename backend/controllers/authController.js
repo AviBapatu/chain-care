@@ -2,8 +2,27 @@ import User from "../models/User.js";
 import bcrypt from "bcryptjs";
 import generateToken from "../utils/generateToken.js";
 import crypto from "crypto";
-import { transporter } from "../config/emailTransporter.js";
 import { sendPasswordReset } from "../utils/emailHandler.js";
+
+const checkEmail = async (req, res) => {
+  try {
+    if (!req.body.email) {
+      return res.status(400).json({ message: "Missing email." });
+    }
+
+    const email = req.body.email;
+
+    const isUser = await User.findOne({ email });
+
+    res.status(200).json({ exists: !!isUser });
+  } catch (error) {
+    console.log(error.message);
+    console.log("checkEmail Controller");
+    return res
+      .status(500)
+      .json({ message: "Server error. Please try again later." });
+  }
+};
 
 const registerUser = async (req, res) => {
   try {
@@ -156,4 +175,4 @@ const resetPassword = async (req, res) => {
   }
 };
 
-export { registerUser, loginUser, forgotPassword, resetPassword };
+export { checkEmail, registerUser, loginUser, forgotPassword, resetPassword };

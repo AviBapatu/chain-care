@@ -41,6 +41,7 @@ const createNote = async (req, res) => {
       .json({ message: "Note has been saved successfully." });
   } catch (error) {
     console.log(error.message);
+    console.log("createNote Controller");
     return res
       .status(500)
       .json({ message: "Server error. Please try again later." });
